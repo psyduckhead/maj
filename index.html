@@ -1,25 +1,862 @@
-<!doctype html>
-<html lang="en">
+<!DOCTYPE html>
+<html lang="zh-CN">
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>maj</title>
-  <style>
-    :root { --bg:#0f1724; --card:#0b1220; --muted:#9aa4b2; --accent:#60a5fa; }
-    body { margin:0; font-family:Inter, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial; background:linear-gradient(180deg,#071027 0%, #071022 100%); color:#e6eef6; display:flex; align-items:center; justify-content:center; min-height:100vh; }
-    .card { background:linear-gradient(180deg,var(--card), rgba(255,255,255,0.02)); padding:36px; border-radius:12px; box-shadow:0 8px 30px rgba(2,6,23,0.6); max-width:760px; width:92%; }
-    h1 { margin:0 0 8px 0; font-size:28px; letter-spacing:-0.02em; }
-    p { margin:0 0 16px 0; color:var(--muted); }
-    a.button { display:inline-block; padding:10px 14px; border-radius:8px; background:var(--accent); color:#031025; text-decoration:none; font-weight:600; }
-    footer { margin-top:18px; color:var(--muted); font-size:13px; }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>麻将手牌转换器 - Tenhou JSON生成器</title>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --primary: #2d5016;
+            --secondary: #4a7c2c;
+            --accent: #d4af37;
+            --bg: #f5f0e8;
+            --card-bg: #ffffff;
+            --text: #2c2c2c;
+            --text-light: #666;
+            --border: #d4c5b0;
+            --error: #c62828;
+            --success: #2e7d32;
+        }
+
+        body {
+            font-family: 'Noto Sans SC', sans-serif;
+            background: linear-gradient(135deg, #f5f0e8 0%, #e8dcc8 100%);
+            min-height: 100vh;
+            padding: 2rem 1rem;
+            color: var(--text);
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 3rem;
+            animation: fadeInDown 0.6s ease-out;
+        }
+
+        h1 {
+            font-size: 2.5rem;
+            font-weight: 700;
+            color: var(--primary);
+            margin-bottom: 0.5rem;
+            text-shadow: 2px 2px 0 rgba(212, 175, 55, 0.2);
+        }
+
+        .subtitle {
+            color: var(--text-light);
+            font-size: 1rem;
+        }
+
+        .card {
+            background: var(--card-bg);
+            border-radius: 12px;
+            padding: 2rem;
+            margin-bottom: 1.5rem;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+            border: 1px solid var(--border);
+            animation: fadeInUp 0.6s ease-out;
+            animation-fill-mode: backwards;
+        }
+
+        .card:nth-child(2) { animation-delay: 0.1s; }
+        .card:nth-child(3) { animation-delay: 0.2s; }
+        .card:nth-child(4) { animation-delay: 0.3s; }
+
+        h2 {
+            font-size: 1.3rem;
+            color: var(--primary);
+            margin-bottom: 1.2rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        h2::before {
+            content: '🀄';
+            font-size: 1.5rem;
+        }
+
+        label {
+            display: block;
+            font-weight: 500;
+            margin-bottom: 0.5rem;
+            color: var(--text);
+        }
+
+        input[type="text"],
+        input[type="number"],
+        textarea {
+            width: 100%;
+            padding: 0.75rem 1rem;
+            border: 2px solid var(--border);
+            border-radius: 8px;
+            font-size: 1rem;
+            font-family: 'JetBrains Mono', monospace;
+            transition: all 0.3s ease;
+            background: #fafafa;
+        }
+
+        input[type="text"]:focus,
+        input[type="number"]:focus,
+        textarea:focus {
+            outline: none;
+            border-color: var(--secondary);
+            background: white;
+            box-shadow: 0 0 0 3px rgba(74, 124, 44, 0.1);
+        }
+
+        textarea {
+            min-height: 200px;
+            resize: vertical;
+            font-size: 0.9rem;
+        }
+
+        .input-group {
+            margin-bottom: 1.2rem;
+        }
+
+        .help-text {
+            font-size: 0.85rem;
+            color: var(--text-light);
+            margin-top: 0.4rem;
+            font-style: italic;
+        }
+
+        button {
+            background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+            color: white;
+            padding: 0.9rem 2rem;
+            border: none;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 12px rgba(45, 80, 22, 0.3);
+            font-family: 'Noto Sans SC', sans-serif;
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 16px rgba(45, 80, 22, 0.4);
+        }
+
+        button:active {
+            transform: translateY(0);
+        }
+
+        .button-group {
+            display: flex;
+            gap: 1rem;
+            flex-wrap: wrap;
+        }
+
+        .btn-secondary {
+            background: linear-gradient(135deg, #5a5a5a 0%, #3a3a3a 100%);
+        }
+
+        .btn-link {
+            background: transparent;
+            color: var(--secondary);
+            box-shadow: none;
+            padding: 0.9rem 1.5rem;
+            border: 2px solid var(--secondary);
+        }
+
+        .btn-link:hover {
+            background: var(--secondary);
+            color: white;
+        }
+
+        .message {
+            padding: 1rem;
+            border-radius: 8px;
+            margin-top: 1rem;
+            animation: slideIn 0.3s ease-out;
+        }
+
+        .message.error {
+            background: #ffebee;
+            color: var(--error);
+            border-left: 4px solid var(--error);
+        }
+
+        .message.success {
+            background: #e8f5e9;
+            color: var(--success);
+            border-left: 4px solid var(--success);
+        }
+
+        .example {
+            background: #f8f8f8;
+            padding: 1rem;
+            border-radius: 6px;
+            border-left: 3px solid var(--accent);
+            margin-top: 1rem;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.9rem;
+        }
+
+        @keyframes fadeInDown {
+            from {
+                opacity: 0;
+                transform: translateY(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateX(-10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+
+        .grid-2 {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+        }
+
+        @media (max-width: 600px) {
+            .grid-2 {
+                grid-template-columns: 1fr;
+            }
+
+            h1 {
+                font-size: 2rem;
+            }
+
+            .card {
+                padding: 1.5rem;
+            }
+        }
+    </style>
 </head>
 <body>
-  <main class="card">
-    <h1>maj</h1>
-    <p>A simple placeholder homepage for the <strong>psyduckhead/maj</strong> repository.</p>
-    <p><a class="button" href="https://github.com/psyduckhead/maj" target="_blank" rel="noopener">View repository on GitHub</a></p>
-    <footer>Created on 2026-01-12 · Generated by GitHub Copilot</footer>
-  </main>
+    <div class="container">
+        <header>
+            <h1>🀄 麻将手牌转换器</h1>
+            <p class="subtitle">将手牌字符串转换为天凤(Tenhou) JSON格式</p>
+        </header>
+
+        <div class="card">
+            <h2>输入手牌信息</h2>
+            
+            <div class="input-group">
+                <label for="playerHand">自己的手牌字符串</label>
+                <input type="text" id="playerHand" placeholder="例如: 1123456789m1s1p44z">
+                <div class="help-text">格式：数字+m(萬) / p(筒) / s(索) / z(字牌，1-7对应东南西北白发中)，共14张（前13张手牌+最后1张摸牌）<br>赤宝牌：0m=赤5萬, 0p=赤5筒, 0s=赤5索（每种最多1张）</div>
+            </div>
+
+            <div class="input-group">
+                <label for="turn">巡目 (第几巡)</label>
+                <input type="number" id="turn" value="1" min="1" max="18">
+                <div class="help-text">东家第1巡，南家第2巡，西家第3巡，北家第4巡，然后循环。输入当前是第几巡</div>
+            </div>
+
+            <div class="input-group">
+                <label for="playerPosition">自己的座位</label>
+                <select id="playerPosition" style="width: 100%; padding: 0.75rem; border: 2px solid var(--border); border-radius: 8px; font-size: 1rem;">
+                    <option value="0">东家 (0)</option>
+                    <option value="1">南家 (1)</option>
+                    <option value="2">西家 (2)</option>
+                    <option value="3">北家 (3)</option>
+                </select>
+            </div>
+
+            <div class="grid-2">
+                <div class="input-group">
+                    <label for="dora">宝牌指示牌（可选）</label>
+                    <input type="text" id="dora" placeholder="留空则随机，如: 1m 或 27">
+                    <div class="help-text">可以输入牌名(1m/2p/3s/4z)或编号(11-47)</div>
+                </div>
+                
+                <div class="input-group">
+                    <label for="uradora">里宝牌指示牌（可选）</label>
+                    <input type="text" id="uradora" placeholder="留空则随机，如: 2p 或 25">
+                    <div class="help-text">可以输入牌名(1m/2p/3s/4z)或编号(11-47)</div>
+                </div>
+            </div>
+
+            <div class="example">
+                <strong>示例：</strong> 1123456789m1s1p44z
+                <br>表示：一一二三四五六七八九萬 + 一索 + 一筒 + 东东（共14张，最后一张"东"是摸牌）
+                <br><strong>赤宝牌示例：</strong> 112340678m1s1p44z
+                <br>表示：一一二三四赤五六七八萬 + 一索 + 一筒 + 东东（共14张，最后一张"东"是摸牌）
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="button-group">
+                <button onclick="convertToTenhou()">🎲 生成 Tenhou JSON</button>
+                <button class="btn-secondary" onclick="copyJSON()">📋 复制 JSON</button>
+                <button class="btn-link" onclick="openTenhou()">🔗 在天凤验证</button>
+            </div>
+            <div id="message"></div>
+        </div>
+
+        <div class="card">
+            <h2>生成的 JSON 结果</h2>
+            <textarea id="output" readonly placeholder="生成的JSON将显示在这里..."></textarea>
+        </div>
+    </div>
+
+    <script>
+        // 麻将牌编码映射
+        const tileMap = {
+            // 萬 (11-19, 51为赤5萬)
+            'm': { start: 11, red: 51 },
+            // 筒 (21-29, 52为赤5筒)
+            'p': { start: 21, red: 52 },
+            // 索 (31-39, 53为赤5索)
+            's': { start: 31, red: 53 },
+            // 字牌 (41-47: 东南西北白发中)
+            'z': { start: 41 }
+        };
+
+        function parseTileString(handStr) {
+            const tiles = [];
+            let currentNums = '';
+            
+            for (let char of handStr) {
+                if (/\d/.test(char)) {
+                    currentNums += char;
+                } else if (char in tileMap) {
+                    const suit = tileMap[char];
+                    for (let num of currentNums) {
+                        const numVal = parseInt(num);
+                        
+                        // 处理赤宝牌：0表示红五
+                        if (numVal === 0) {
+                            if (char === 'm') tiles.push(51); // 赤5萬
+                            else if (char === 'p') tiles.push(52); // 赤5筒
+                            else if (char === 's') tiles.push(53); // 赤5索
+                        }
+                        // 对于字牌，直接使用数字1-7
+                        else if (char === 'z') {
+                            tiles.push(suit.start + numVal - 1);
+                        } else {
+                            // 萬、筒、索使用1-9
+                            tiles.push(suit.start + numVal - 1);
+                        }
+                    }
+                    currentNums = '';
+                }
+            }
+            
+            return tiles;
+        }
+
+        // 解析单张牌的输入（支持 "1m" 或 "11" 格式）
+        function parseSingleTile(input) {
+            if (!input || input.trim() === '') {
+                return null;
+            }
+            
+            input = input.trim();
+            
+            // 如果是纯数字，直接返回
+            if (/^\d+$/.test(input)) {
+                const num = parseInt(input);
+                // 验证范围：11-19, 21-29, 31-39, 41-47
+                if ((num >= 11 && num <= 19) || 
+                    (num >= 21 && num <= 29) || 
+                    (num >= 31 && num <= 39) || 
+                    (num >= 41 && num <= 47)) {
+                    return num;
+                }
+                return null;
+            }
+            
+            // 如果是牌名格式（如 1m, 2p, 3s, 4z），解析它
+            const tiles = parseTileString(input);
+            return tiles.length > 0 ? tiles[0] : null;
+        }
+
+        // 统计牌的使用数量
+        function countTiles(tiles) {
+            const count = {};
+            for (let tile of tiles) {
+                count[tile] = (count[tile] || 0) + 1;
+            }
+            return count;
+        }
+
+        function generateRandomTiles(count, tileCount, excludeTiles = []) {
+            const tiles = [];
+            const excludeSet = new Set(excludeTiles);
+            
+            // 所有可能的牌 (11-19, 21-29, 31-39, 41-47, 51-53赤宝牌)
+            const allTiles = [];
+            for (let i = 1; i <= 9; i++) {
+                allTiles.push(11 + i - 1); // 萬
+                allTiles.push(21 + i - 1); // 筒
+                allTiles.push(31 + i - 1); // 索
+            }
+            for (let i = 1; i <= 7; i++) {
+                allTiles.push(41 + i - 1); // 字牌
+            }
+            // 添加赤宝牌
+            allTiles.push(51, 52, 53); // 赤5萬、赤5筒、赤5索
+            
+            // 随机选择，确保每种牌不超过4张
+            // 特别注意：5和红5要合并计算，且红5最多1张
+            let attempts = 0;
+            while (tiles.length < count && attempts < 1000) {
+                const tile = allTiles[Math.floor(Math.random() * allTiles.length)];
+                
+                // 跳过排除的牌
+                if (excludeSet.has(tile)) {
+                    attempts++;
+                    continue;
+                }
+                
+                // 检查是否可以使用这张牌
+                let canUse = false;
+                
+                // 赤5萬 (51) - 最多只能有1张，且要和 5萬 (15) 合并计算
+                if (tile === 51) {
+                    const red5m = (tileCount[51] || 0);
+                    const normal5m = (tileCount[15] || 0);
+                    canUse = red5m === 0 && (red5m + normal5m) < 4;
+                }
+                // 赤5筒 (52) - 最多只能有1张，且要和 5筒 (25) 合并计算
+                else if (tile === 52) {
+                    const red5p = (tileCount[52] || 0);
+                    const normal5p = (tileCount[25] || 0);
+                    canUse = red5p === 0 && (red5p + normal5p) < 4;
+                }
+                // 赤5索 (53) - 最多只能有1张，且要和 5索 (35) 合并计算
+                else if (tile === 53) {
+                    const red5s = (tileCount[53] || 0);
+                    const normal5s = (tileCount[35] || 0);
+                    canUse = red5s === 0 && (red5s + normal5s) < 4;
+                }
+                // 5萬 (15) 需要和赤5萬 (51) 合并计算
+                else if (tile === 15) {
+                    const total = (tileCount[51] || 0) + (tileCount[15] || 0);
+                    canUse = total < 4;
+                }
+                // 5筒 (25) 需要和赤5筒 (52) 合并计算
+                else if (tile === 25) {
+                    const total = (tileCount[52] || 0) + (tileCount[25] || 0);
+                    canUse = total < 4;
+                }
+                // 5索 (35) 需要和赤5索 (53) 合并计算
+                else if (tile === 35) {
+                    const total = (tileCount[53] || 0) + (tileCount[35] || 0);
+                    canUse = total < 4;
+                }
+                // 其他牌正常判断
+                else {
+                    canUse = (tileCount[tile] || 0) < 4;
+                }
+                
+                if (canUse) {
+                    tiles.push(tile);
+                    tileCount[tile] = (tileCount[tile] || 0) + 1;
+                }
+                attempts++;
+            }
+            
+            return tiles;
+        }
+
+        function generateGameData(turn, playerHand, playerDrawnTile, playerPos, doraIndicator, uradoraIndicator) {
+            // 全局牌计数器 - 统计所有已使用的牌（包括宝牌指示牌）
+            const tileCount = {};
+            const excludeTiles = []; // 需要排除的牌（宝牌指示牌）
+            
+            // 先计入宝牌指示牌
+            if (doraIndicator !== null) {
+                tileCount[doraIndicator] = (tileCount[doraIndicator] || 0) + 1;
+                excludeTiles.push(doraIndicator);
+            }
+            if (uradoraIndicator !== null) {
+                tileCount[uradoraIndicator] = (tileCount[uradoraIndicator] || 0) + 1;
+                excludeTiles.push(uradoraIndicator);
+            }
+            
+            // 生成4家的数据
+            const hands = [[], [], [], []]; // 手牌（13张）
+            const draws = [[], [], [], []]; // 摸牌
+            const discards = [[], [], [], []]; // 出牌
+            
+            // 先设置玩家的手牌（13张）并计入计数器
+            hands[playerPos] = [...playerHand];
+            for (let tile of playerHand) {
+                tileCount[tile] = (tileCount[tile] || 0) + 1;
+            }
+            
+            // 玩家的摸牌也要计入
+            tileCount[playerDrawnTile] = (tileCount[playerDrawnTile] || 0) + 1;
+            
+            // 生成其他三家的手牌（各13张）
+            for (let i = 0; i < 4; i++) {
+                if (i !== playerPos) {
+                    hands[i] = generateRandomTiles(13, tileCount, excludeTiles);
+                }
+            }
+            
+            // 计算当前轮到谁：东家(0)先开始，按0->1->2->3顺序
+            const currentPlayer = (turn - 1) % 4;
+            
+            // 生成每巡的摸牌和出牌
+            const totalActions = (turn - 1) * 4 + (currentPlayer + 1);
+            
+            for (let action = 0; action < totalActions; action++) {
+                const p = action % 4; // 当前是哪个玩家
+                
+                let drawTile;
+                
+                // 如果是玩家且是当前最后一个动作，使用玩家输入的摸牌
+                if (p === playerPos && action === totalActions - 1) {
+                    drawTile = playerDrawnTile;
+                } else {
+                    // 其他情况随机生成摸牌
+                    drawTile = generateRandomTiles(1, tileCount, excludeTiles)[0];
+                    if (drawTile === undefined) {
+                        console.error('无法生成摸牌，可能牌已用完');
+                        break;
+                    }
+                }
+                
+                draws[p].push(drawTile);
+                
+                // 如果不是最后一个动作，需要出牌
+                if (action < totalActions - 1) {
+                    // 打出刚摸的牌，并从计数器中减去
+                    discards[p].push(drawTile);
+                    tileCount[drawTile] = (tileCount[drawTile] || 0) - 1;
+                    if (tileCount[drawTile] <= 0) {
+                        delete tileCount[drawTile];
+                    }
+                }
+            }
+            
+            return { hands, draws, discards };
+        }
+
+        function validateTileCounts(hands, draws, doraIndicator, uradoraIndicator) {
+            // 验证所有手牌+摸牌+宝牌指示牌中，每种牌不超过4张
+            // 特别注意：5和红5要合并计算，且红5最多1张
+            const totalCount = {};
+            
+            // 统计所有手牌
+            for (let hand of hands) {
+                for (let tile of hand) {
+                    totalCount[tile] = (totalCount[tile] || 0) + 1;
+                }
+            }
+            
+            // 统计所有摸牌
+            for (let draw of draws) {
+                for (let tile of draw) {
+                    totalCount[tile] = (totalCount[tile] || 0) + 1;
+                }
+            }
+            
+            // 统计宝牌指示牌
+            if (doraIndicator !== null) {
+                totalCount[doraIndicator] = (totalCount[doraIndicator] || 0) + 1;
+            }
+            if (uradoraIndicator !== null) {
+                totalCount[uradoraIndicator] = (totalCount[uradoraIndicator] || 0) + 1;
+            }
+            
+            // 检查是否有超过限制的牌
+            const errors = [];
+            
+            // 检查赤宝牌是否超过1张
+            if ((totalCount[51] || 0) > 1) {
+                errors.push(`赤5萬(51)出现了 ${totalCount[51]} 次（最多1次）`);
+            }
+            if ((totalCount[52] || 0) > 1) {
+                errors.push(`赤5筒(52)出现了 ${totalCount[52]} 次（最多1次）`);
+            }
+            if ((totalCount[53] || 0) > 1) {
+                errors.push(`赤5索(53)出现了 ${totalCount[53]} 次（最多1次）`);
+            }
+            
+            // 检查5萬和赤5萬的总数
+            const m5Total = (totalCount[15] || 0) + (totalCount[51] || 0);
+            if (m5Total > 4) {
+                errors.push(`5萬(15)和赤5萬(51)合计出现了 ${m5Total} 次（超过4次）`);
+            }
+            
+            // 检查5筒和赤5筒的总数
+            const p5Total = (totalCount[25] || 0) + (totalCount[52] || 0);
+            if (p5Total > 4) {
+                errors.push(`5筒(25)和赤5筒(52)合计出现了 ${p5Total} 次（超过4次）`);
+            }
+            
+            // 检查5索和赤5索的总数
+            const s5Total = (totalCount[35] || 0) + (totalCount[53] || 0);
+            if (s5Total > 4) {
+                errors.push(`5索(35)和赤5索(53)合计出现了 ${s5Total} 次（超过4次）`);
+            }
+            
+            // 检查其他牌（排除5和红5）
+            for (let tile in totalCount) {
+                const tileNum = parseInt(tile);
+                // 跳过5和红5，因为已经单独检查过
+                if ([15, 25, 35, 51, 52, 53].includes(tileNum)) {
+                    continue;
+                }
+                
+                if (totalCount[tile] > 4) {
+                    errors.push(`牌 ${tile} 出现了 ${totalCount[tile]} 次（超过4次）`);
+                }
+            }
+            
+            return errors;
+        }
+
+        function convertToTenhou() {
+            const handStr = document.getElementById('playerHand').value.trim();
+            const turn = parseInt(document.getElementById('turn').value);
+            const playerPos = parseInt(document.getElementById('playerPosition').value);
+            const doraInput = document.getElementById('dora').value.trim();
+            const uradoraInput = document.getElementById('uradora').value.trim();
+            const messageDiv = document.getElementById('message');
+            const outputArea = document.getElementById('output');
+
+            if (!handStr) {
+                messageDiv.innerHTML = '<div class="message error">⚠️ 请输入手牌字符串</div>';
+                return;
+            }
+
+            try {
+                // 解析手牌
+                const playerTiles = parseTileString(handStr);
+                
+                // 手牌应该是14张（包含摸牌）
+                if (playerTiles.length !== 14) {
+                    messageDiv.innerHTML = '<div class="message error">⚠️ 手牌数量必须是14张（13张手牌+1张摸牌）</div>';
+                    return;
+                }
+                
+                // 分离手牌和摸牌：前13张是手牌，第14张是摸牌
+                const actualHand = playerTiles.slice(0, 13);
+                const drawnTile = playerTiles[13];
+
+                // 解析宝牌指示牌（如果有输入）
+                let doraIndicator = parseSingleTile(doraInput);
+                let uradoraIndicator = parseSingleTile(uradoraInput);
+                
+                // 如果没有输入宝牌，稍后随机生成
+                // 先进行初步验证
+                if (doraIndicator !== null) {
+                    // 验证宝牌格式
+                    if (doraIndicator < 11 || doraIndicator > 47 || 
+                        (doraIndicator > 19 && doraIndicator < 21) ||
+                        (doraIndicator > 29 && doraIndicator < 31) ||
+                        (doraIndicator > 39 && doraIndicator < 41)) {
+                        messageDiv.innerHTML = '<div class="message error">⚠️ 宝牌指示牌格式错误</div>';
+                        return;
+                    }
+                }
+                
+                if (uradoraIndicator !== null) {
+                    // 验证里宝牌格式
+                    if (uradoraIndicator < 11 || uradoraIndicator > 47 || 
+                        (uradoraIndicator > 19 && uradoraIndicator < 21) ||
+                        (uradoraIndicator > 29 && uradoraIndicator < 31) ||
+                        (uradoraIndicator > 39 && uradoraIndicator < 41)) {
+                        messageDiv.innerHTML = '<div class="message error">⚠️ 里宝牌指示牌格式错误</div>';
+                        return;
+                    }
+                }
+
+                // 尝试生成有效的数据，最多重试10次
+                let gameData = null;
+                let finalDoraIndicator = doraIndicator;
+                let finalUradoraIndicator = uradoraIndicator;
+                let attempts = 0;
+                const maxAttempts = 10;
+                
+                while (attempts < maxAttempts) {
+                    attempts++;
+                    
+                    // 创建临时牌计数器用于生成宝牌
+                    const tempTileCount = {};
+                    for (let tile of actualHand) {
+                        tempTileCount[tile] = (tempTileCount[tile] || 0) + 1;
+                    }
+                    // 也要计入玩家的摸牌
+                    tempTileCount[drawnTile] = (tempTileCount[drawnTile] || 0) + 1;
+                    
+                    // 如果用户没有指定宝牌，随机生成
+                    if (doraIndicator === null) {
+                        // 随机生成一张宝牌指示牌（排除赤宝牌51-53）
+                        const doraCandidates = [];
+                        for (let i = 1; i <= 9; i++) {
+                            doraCandidates.push(11 + i - 1, 21 + i - 1, 31 + i - 1);
+                        }
+                        for (let i = 1; i <= 7; i++) {
+                            doraCandidates.push(41 + i - 1);
+                        }
+                        finalDoraIndicator = doraCandidates[Math.floor(Math.random() * doraCandidates.length)];
+                    }
+                    
+                    tempTileCount[finalDoraIndicator] = (tempTileCount[finalDoraIndicator] || 0) + 1;
+                    
+                    // 如果用户没有指定里宝牌，随机生成
+                    if (uradoraIndicator === null) {
+                        // 随机生成一张里宝牌指示牌（排除赤宝牌51-53和已选的宝牌）
+                        const uradoraCandidates = [];
+                        for (let i = 1; i <= 9; i++) {
+                            uradoraCandidates.push(11 + i - 1, 21 + i - 1, 31 + i - 1);
+                        }
+                        for (let i = 1; i <= 7; i++) {
+                            uradoraCandidates.push(41 + i - 1);
+                        }
+                        // 过滤掉已使用超过3次的牌
+                        const availableUra = uradoraCandidates.filter(tile => {
+                            if (tile === 15 || tile === 25 || tile === 35) {
+                                // 5需要考虑红5
+                                const normal5 = tempTileCount[tile] || 0;
+                                const red5 = tempTileCount[tile + 36] || 0; // 51-15=36, 52-25=27, 53-35=18
+                                return (normal5 + red5) < 4;
+                            }
+                            return (tempTileCount[tile] || 0) < 4;
+                        });
+                        
+                        if (availableUra.length > 0) {
+                            finalUradoraIndicator = availableUra[Math.floor(Math.random() * availableUra.length)];
+                        } else {
+                            // 如果没有可用的牌，随机选一个
+                            finalUradoraIndicator = uradoraCandidates[Math.floor(Math.random() * uradoraCandidates.length)];
+                        }
+                    }
+                    
+                    gameData = generateGameData(turn, actualHand, drawnTile, playerPos, finalDoraIndicator, finalUradoraIndicator);
+                    
+                    // 验证牌的数量（包括宝牌）
+                    const errors = validateTileCounts(gameData.hands, gameData.draws, finalDoraIndicator, finalUradoraIndicator);
+                    if (errors.length === 0) {
+                        // 生成成功，跳出循环
+                        break;
+                    }
+                    
+                    // 如果是最后一次尝试还是失败，显示错误
+                    if (attempts === maxAttempts) {
+                        messageDiv.innerHTML = `<div class="message error">⚠️ 生成失败，请重试或调整手牌</div>`;
+                        console.error('尝试10次后仍然生成失败:', errors);
+                        return;
+                    }
+                    
+                    // 继续重试（如果宝牌是随机的，下次会生成不同的宝牌）
+                    console.log(`第${attempts}次生成有问题，重试中...`, errors);
+                }
+
+                // 构建 Tenhou JSON (完整格式)
+                const tenhouJSON = {
+                    "title": ["麻将牌局", ""],
+                    "name": ["玩家1", "玩家2", "玩家3", "玩家4"],
+                    "rule": {
+                        "aka": 1
+                    },
+                    "log": [
+                        [
+                            [0, 0, 0], // [0] 场、本场、立直棒
+                            [25000, 25000, 25000, 25000], // [1] 各家点数
+                            [finalDoraIndicator], // [2] 宝牌指示牌
+                            [finalUradoraIndicator], // [3] 里宝牌指示牌
+                            gameData.hands[0], // [4] 东家手牌
+                            gameData.draws[0], // [5] 东家摸牌
+                            gameData.discards[0], // [6] 东家出牌
+                            gameData.hands[1], // [7] 南家手牌
+                            gameData.draws[1], // [8] 南家摸牌
+                            gameData.discards[1], // [9] 南家出牌
+                            gameData.hands[2], // [10] 西家手牌
+                            gameData.draws[2], // [11] 西家摸牌
+                            gameData.discards[2], // [12] 西家出牌
+                            gameData.hands[3], // [13] 北家手牌
+                            gameData.draws[3], // [14] 北家摸牌
+                            gameData.discards[3], // [15] 北家出牌
+                            ["不明"] // [16] 结果（不明表示未结束）
+                        ]
+                    ]
+                };
+
+                const jsonStr = JSON.stringify(tenhouJSON);
+                outputArea.value = jsonStr;
+                messageDiv.innerHTML = '<div class="message success">✓ JSON生成成功！可以复制或在天凤验证</div>';
+
+            } catch (error) {
+                messageDiv.innerHTML = `<div class="message error">⚠️ 转换失败: ${error.message}</div>`;
+                console.error(error);
+            }
+        }
+
+        function copyJSON() {
+            const output = document.getElementById('output');
+            const messageDiv = document.getElementById('message');
+            
+            if (!output.value) {
+                messageDiv.innerHTML = '<div class="message error">⚠️ 没有可复制的内容，请先生成JSON</div>';
+                return;
+            }
+
+            output.select();
+            document.execCommand('copy');
+            messageDiv.innerHTML = '<div class="message success">✓ JSON已复制到剪贴板</div>';
+        }
+
+        function openTenhou() {
+            const output = document.getElementById('output').value;
+            const messageDiv = document.getElementById('message');
+            
+            if (!output) {
+                messageDiv.innerHTML = '<div class="message error">⚠️ 请先生成JSON再验证</div>';
+                return;
+            }
+
+            try {
+                const jsonData = JSON.parse(output);
+                const jsonStr = JSON.stringify(jsonData);
+                const encodedJSON = encodeURIComponent(jsonStr);
+                const url = `https://tenhou.net/6/#json=${encodedJSON}`;
+                window.open(url, '_blank');
+            } catch (error) {
+                messageDiv.innerHTML = '<div class="message error">⚠️ JSON格式错误，无法打开天凤</div>';
+            }
+        }
+
+        // 示例自动填充
+        window.addEventListener('load', () => {
+            document.getElementById('playerHand').value = '1123456789m1s1p44z';
+        });
+    </script>
 </body>
 </html>
