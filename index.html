@@ -274,13 +274,16 @@
             <div class="input-group">
                 <label for="playerHand">自己的手牌字符串</label>
                 <input type="text" id="playerHand" placeholder="例如: 1123456789m1s1p44z">
-                <div class="help-text">格式：数字+m(萬) / p(筒) / s(索) / z(字牌，1-7对应东南西北白发中)，共14张（前13张手牌+最后1张摸牌）<br>赤宝牌：0m=赤5萬, 0p=赤5筒, 0s=赤5索（每种最多1张）</div>
+                <div class="help-text">格式：数字+m(萬) / p(筒) / s(索) / z(字牌，1-7对应东南西北白发中)<br>
+                • 输入13张：最后摸的牌将随机生成<br>
+                • 输入14张：最后1张是您摸的牌（前13张为手牌）<br>
+                赤宝牌：0m=赤5萬, 0p=赤5筒, 0s=赤5索（每种最多1张）</div>
             </div>
 
             <div class="input-group">
                 <label for="turn">巡目 (第几巡)</label>
                 <input type="number" id="turn" value="1" min="1" max="18">
-                <div class="help-text">东家第1巡，南家第2巡，西家第3巡，北家第4巡，然后循环。输入当前是第几巡</div>
+                <div class="help-text">表示您自己的第几次摸牌。例如：巡目1=您第1次摸牌，巡目4=您第4次摸牌（前面已摸打3轮）</div>
             </div>
 
             <div class="input-group">
@@ -441,47 +444,7 @@
                 }
                 
                 // 检查是否可以使用这张牌
-                let canUse = false;
-                
-                // 赤5萬 (51) - 最多只能有1张，且要和 5萬 (15) 合并计算
-                if (tile === 51) {
-                    const red5m = (tileCount[51] || 0);
-                    const normal5m = (tileCount[15] || 0);
-                    canUse = red5m === 0 && (red5m + normal5m) < 4;
-                }
-                // 赤5筒 (52) - 最多只能有1张，且要和 5筒 (25) 合并计算
-                else if (tile === 52) {
-                    const red5p = (tileCount[52] || 0);
-                    const normal5p = (tileCount[25] || 0);
-                    canUse = red5p === 0 && (red5p + normal5p) < 4;
-                }
-                // 赤5索 (53) - 最多只能有1张，且要和 5索 (35) 合并计算
-                else if (tile === 53) {
-                    const red5s = (tileCount[53] || 0);
-                    const normal5s = (tileCount[35] || 0);
-                    canUse = red5s === 0 && (red5s + normal5s) < 4;
-                }
-                // 5萬 (15) 需要和赤5萬 (51) 合并计算
-                else if (tile === 15) {
-                    const total = (tileCount[51] || 0) + (tileCount[15] || 0);
-                    canUse = total < 4;
-                }
-                // 5筒 (25) 需要和赤5筒 (52) 合并计算
-                else if (tile === 25) {
-                    const total = (tileCount[52] || 0) + (tileCount[25] || 0);
-                    canUse = total < 4;
-                }
-                // 5索 (35) 需要和赤5索 (53) 合并计算
-                else if (tile === 35) {
-                    const total = (tileCount[53] || 0) + (tileCount[35] || 0);
-                    canUse = total < 4;
-                }
-                // 其他牌正常判断
-                else {
-                    canUse = (tileCount[tile] || 0) < 4;
-                }
-                
-                if (canUse) {
+                if (canUseTile(tile, tileCount)) {
                     tiles.push(tile);
                     tileCount[tile] = (tileCount[tile] || 0) + 1;
                 }
@@ -489,6 +452,47 @@
             }
             
             return tiles;
+        }
+        
+        // 辅助函数：检查是否可以使用这张牌
+        function canUseTile(tile, tileCount) {
+            // 赤5萬 (51) - 最多只能有1张，且要和 5萬 (15) 合并计算
+            if (tile === 51) {
+                const red5m = (tileCount[51] || 0);
+                const normal5m = (tileCount[15] || 0);
+                return red5m === 0 && (red5m + normal5m) < 4;
+            }
+            // 赤5筒 (52) - 最多只能有1张，且要和 5筒 (25) 合并计算
+            else if (tile === 52) {
+                const red5p = (tileCount[52] || 0);
+                const normal5p = (tileCount[25] || 0);
+                return red5p === 0 && (red5p + normal5p) < 4;
+            }
+            // 赤5索 (53) - 最多只能有1张，且要和 5索 (35) 合并计算
+            else if (tile === 53) {
+                const red5s = (tileCount[53] || 0);
+                const normal5s = (tileCount[35] || 0);
+                return red5s === 0 && (red5s + normal5s) < 4;
+            }
+            // 5萬 (15) 需要和赤5萬 (51) 合并计算
+            else if (tile === 15) {
+                const total = (tileCount[51] || 0) + (tileCount[15] || 0);
+                return total < 4;
+            }
+            // 5筒 (25) 需要和赤5筒 (52) 合并计算
+            else if (tile === 25) {
+                const total = (tileCount[52] || 0) + (tileCount[25] || 0);
+                return total < 4;
+            }
+            // 5索 (35) 需要和赤5索 (53) 合并计算
+            else if (tile === 35) {
+                const total = (tileCount[53] || 0) + (tileCount[35] || 0);
+                return total < 4;
+            }
+            // 其他牌正常判断
+            else {
+                return (tileCount[tile] || 0) < 4;
+            }
         }
 
         function generateGameData(turn, playerHand, playerDrawnTile, playerPos, doraIndicator, uradoraIndicator) {
@@ -517,8 +521,10 @@
                 tileCount[tile] = (tileCount[tile] || 0) + 1;
             }
             
-            // 玩家的摸牌也要计入
-            tileCount[playerDrawnTile] = (tileCount[playerDrawnTile] || 0) + 1;
+            // 如果玩家有指定摸牌，计入计数器
+            if (playerDrawnTile !== null) {
+                tileCount[playerDrawnTile] = (tileCount[playerDrawnTile] || 0) + 1;
+            }
             
             // 生成其他三家的手牌（各13张）
             for (let i = 0; i < 4; i++) {
@@ -527,20 +533,35 @@
                 }
             }
             
-            // 计算当前轮到谁：东家(0)先开始，按0->1->2->3顺序
-            const currentPlayer = (turn - 1) % 4;
+            // 巡目的含义：玩家自己的第N次摸牌
+            // turn=1: 玩家第1次摸牌
+            // turn=2: 玩家第2次摸牌
+            // 每个玩家轮流摸打，所以总动作数计算如下：
             
-            // 生成每巡的摸牌和出牌
-            const totalActions = (turn - 1) * 4 + (currentPlayer + 1);
+            // 计算到当前巡目为止，一共发生了多少次动作
+            // 玩家在巡目N摸牌，意味着：
+            // - 前面(N-1)轮，每轮4个人都摸打过：(N-1) * 4 次
+            // - 当前轮，从东家开始到玩家位置：playerPos + 1 次
+            const totalActions = (turn - 1) * 4 + playerPos + 1;
             
             for (let action = 0; action < totalActions; action++) {
                 const p = action % 4; // 当前是哪个玩家
                 
                 let drawTile;
                 
-                // 如果是玩家且是当前最后一个动作，使用玩家输入的摸牌
+                // 如果是玩家且是当前最后一个动作（玩家在当前巡目摸牌）
                 if (p === playerPos && action === totalActions - 1) {
-                    drawTile = playerDrawnTile;
+                    if (playerDrawnTile !== null) {
+                        // 使用玩家指定的摸牌
+                        drawTile = playerDrawnTile;
+                    } else {
+                        // 玩家没有指定摸牌，随机生成
+                        drawTile = generateRandomTiles(1, tileCount, excludeTiles)[0];
+                        if (drawTile === undefined) {
+                            console.error('无法生成摸牌，可能牌已用完');
+                            break;
+                        }
+                    }
                 } else {
                     // 其他情况随机生成摸牌
                     drawTile = generateRandomTiles(1, tileCount, excludeTiles)[0];
@@ -659,15 +680,23 @@
                 // 解析手牌
                 const playerTiles = parseTileString(handStr);
                 
-                // 手牌应该是14张（包含摸牌）
-                if (playerTiles.length !== 14) {
-                    messageDiv.innerHTML = '<div class="message error">⚠️ 手牌数量必须是14张（13张手牌+1张摸牌）</div>';
+                // 手牌应该是13张或14张
+                if (playerTiles.length !== 13 && playerTiles.length !== 14) {
+                    messageDiv.innerHTML = '<div class="message error">⚠️ 手牌数量必须是13张或14张</div>';
                     return;
                 }
                 
-                // 分离手牌和摸牌：前13张是手牌，第14张是摸牌
-                const actualHand = playerTiles.slice(0, 13);
-                const drawnTile = playerTiles[13];
+                // 分离手牌和摸牌
+                let actualHand, drawnTile;
+                if (playerTiles.length === 14) {
+                    // 14张：前13张是手牌，第14张是摸牌
+                    actualHand = playerTiles.slice(0, 13);
+                    drawnTile = playerTiles[13];
+                } else {
+                    // 13张：全部是手牌，摸牌为null（稍后随机生成）
+                    actualHand = playerTiles;
+                    drawnTile = null;
+                }
 
                 // 解析宝牌指示牌（如果有输入）
                 let doraIndicator = parseSingleTile(doraInput);
@@ -712,8 +741,10 @@
                     for (let tile of actualHand) {
                         tempTileCount[tile] = (tempTileCount[tile] || 0) + 1;
                     }
-                    // 也要计入玩家的摸牌
-                    tempTileCount[drawnTile] = (tempTileCount[drawnTile] || 0) + 1;
+                    // 如果玩家有指定摸牌，也要计入
+                    if (drawnTile !== null) {
+                        tempTileCount[drawnTile] = (tempTileCount[drawnTile] || 0) + 1;
+                    }
                     
                     // 如果用户没有指定宝牌，随机生成
                     if (doraIndicator === null) {
