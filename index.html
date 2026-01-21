@@ -573,14 +573,12 @@
                 
                 draws[p].push(drawTile);
                 
-                // 如果不是最后一个动作，需要出牌
-                if (action < totalActions - 1) {
-                    // 打出刚摸的牌，并从计数器中减去
-                    discards[p].push(drawTile);
-                    tileCount[drawTile] = (tileCount[drawTile] || 0) - 1;
-                    if (tileCount[drawTile] <= 0) {
-                        delete tileCount[drawTile];
-                    }
+                // 所有摸牌都要出牌（包括最后一张）
+                // 打出刚摸的牌，并从计数器中减去
+                discards[p].push(drawTile);
+                tileCount[drawTile] = (tileCount[drawTile] || 0) - 1;
+                if (tileCount[drawTile] <= 0) {
+                    delete tileCount[drawTile];
                 }
             }
             
