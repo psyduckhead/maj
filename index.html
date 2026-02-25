@@ -350,8 +350,12 @@
                 <button onclick="convertToTenhou()">🎲 生成 Tenhou JSON</button>
                 <button class="btn-secondary" onclick="copyJSON()">📋 复制 JSON</button>
                 <button class="btn-link" onclick="openTenhou()">🔗 在天凤验证</button>
+                <button class="btn-link" onclick="openMortal()">🤖 打开Mortal</button>
             </div>
             <div id="message"></div>
+            <div class="help-text" style="margin-top: 1rem; padding: 0.8rem; background: #f8f8f8; border-radius: 6px; border-left: 3px solid var(--accent);">
+                💡 <strong>使用Mortal：</strong>打开Mortal后，选择 <strong>自定义 (tenhou.net/6 JSON)</strong>，再将JSON复制进去
+            </div>
         </div>
 
         <div class="card">
@@ -995,10 +999,60 @@
             }
         }
 
+        function openMortal() {
+            window.open('https://mjai.ekyu.moe/zh-cn.html', '_blank');
+        }
+
         // 示例自动填充
         window.addEventListener('load', () => {
             document.getElementById('playerHand').value = '1123456789m1s1p44z';
+            
+            // 巡目改变时清空牌河
+            document.getElementById('turn').addEventListener('change', function() {
+                clearRiverInputs();
+            });
+            
+            // 座位改变时重新计算巡目
+            document.getElementById('playerPosition').addEventListener('change', function() {
+                autoCalculateTurn();
+            });
+            
+            // 牌河输入框改变时自动计算巡目
+            for (let i = 0; i < 4; i++) {
+                document.getElementById(`river${i}`).addEventListener('input', function() {
+                    autoCalculateTurn();
+                });
+            }
         });
+        
+        // 清空所有牌河输入框
+        function clearRiverInputs() {
+            for (let i = 0; i < 4; i++) {
+                document.getElementById(`river${i}`).value = '';
+            }
+        }
+        
+        // 根据牌河长度自动计算巡目
+        function autoCalculateTurn() {
+            const playerPos = parseInt(document.getElementById('playerPosition').value);
+            
+            // 获取玩家自己的牌河
+            const playerRiverStr = document.getElementById(`river${playerPos}`).value.trim();
+            
+            if (!playerRiverStr) {
+                return; // 如果玩家牌河为空，不自动计算
+            }
+            
+            // 解析玩家的牌河
+            const playerRiverTiles = parseTileString(playerRiverStr);
+            const riverLength = playerRiverTiles.length;
+            
+            if (riverLength > 0) {
+                // 牌河长度 = 玩家的巡目数
+                // 因为每摸一张就打一张，所以牌河长度就是巡目
+                document.getElementById('turn').value = riverLength;
+            }
+        }
     </script>
 </body>
 </html>
