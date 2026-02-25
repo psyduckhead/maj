@@ -310,6 +310,33 @@
                 </div>
             </div>
 
+            <div class="input-group">
+                <label>牌河编辑（可选）</label>
+                <div class="help-text" style="margin-bottom: 0.8rem;">每家可以单独输入出牌序列，留空则随机生成。支持赤宝牌(0m/0p/0s)</div>
+                
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.8rem; margin-bottom: 0.5rem;">
+                    <div>
+                        <label style="font-size: 0.9rem; margin-bottom: 0.3rem;">东家出牌</label>
+                        <input type="text" id="river0" placeholder="如: 1z2z3m4m">
+                    </div>
+                    <div>
+                        <label style="font-size: 0.9rem; margin-bottom: 0.3rem;">南家出牌</label>
+                        <input type="text" id="river1" placeholder="如: 5s6s7p8p">
+                    </div>
+                </div>
+                
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.8rem;">
+                    <div>
+                        <label style="font-size: 0.9rem; margin-bottom: 0.3rem;">西家出牌</label>
+                        <input type="text" id="river2" placeholder="如: 9m1p2s3s">
+                    </div>
+                    <div>
+                        <label style="font-size: 0.9rem; margin-bottom: 0.3rem;">北家出牌</label>
+                        <input type="text" id="river3" placeholder="如: 4z5z0m0p">
+                    </div>
+                </div>
+            </div>
+
             <div class="example">
                 <strong>示例：</strong> 1123456789m1s1p44z
                 <br>表示：一一二三四五六七八九萬 + 一索 + 一筒 + 东东（共14张，最后一张"东"是摸牌）
@@ -495,7 +522,7 @@
             }
         }
 
-        function generateGameData(turn, playerHand, playerDrawnTile, playerPos, doraIndicator, uradoraIndicator) {
+        function generateGameData(turn, playerHand, playerDrawnTile, playerPos, doraIndicator, uradoraIndicator, customRivers) {
             // 全局牌计数器 - 统计所有已使用的牌（包括宝牌指示牌）
             const tileCount = {};
             const excludeTiles = []; // 需要排除的牌（宝牌指示牌）
@@ -508,6 +535,17 @@
             if (uradoraIndicator !== null) {
                 tileCount[uradoraIndicator] = (tileCount[uradoraIndicator] || 0) + 1;
                 excludeTiles.push(uradoraIndicator);
+            }
+            
+            // 如果有自定义牌河，先计入这些牌
+            if (customRivers) {
+                for (let i = 0; i < 4; i++) {
+                    if (customRivers[i]) {
+                        for (let tile of customRivers[i]) {
+                            tileCount[tile] = (tileCount[tile] || 0) + 1;
+                        }
+                    }
+                }
             }
             
             // 生成4家的数据
@@ -533,52 +571,63 @@
                 }
             }
             
-            // 巡目的含义：玩家自己的第N次摸牌
-            // turn=1: 玩家第1次摸牌
-            // turn=2: 玩家第2次摸牌
-            // 每个玩家轮流摸打，所以总动作数计算如下：
-            
             // 计算到当前巡目为止，一共发生了多少次动作
-            // 玩家在巡目N摸牌，意味着：
-            // - 前面(N-1)轮，每轮4个人都摸打过：(N-1) * 4 次
-            // - 当前轮，从东家开始到玩家位置：playerPos + 1 次
             const totalActions = (turn - 1) * 4 + playerPos + 1;
+            
+            // 记录每家已经使用的自定义牌河索引
+            const customRiverIndex = [0, 0, 0, 0];
             
             for (let action = 0; action < totalActions; action++) {
                 const p = action % 4; // 当前是哪个玩家
                 
                 let drawTile;
+                let discardTile;
                 
-                // 如果是玩家且是当前最后一个动作（玩家在当前巡目摸牌）
-                if (p === playerPos && action === totalActions - 1) {
-                    if (playerDrawnTile !== null) {
-                        // 使用玩家指定的摸牌
-                        drawTile = playerDrawnTile;
+                // 检查该玩家是否有自定义的出牌且还没用完
+                const hasCustomDiscard = customRivers && 
+                                        customRivers[p] && 
+                                        customRiverIndex[p] < customRivers[p].length;
+                
+                if (hasCustomDiscard) {
+                    // 使用自定义的出牌
+                    discardTile = customRivers[p][customRiverIndex[p]];
+                    customRiverIndex[p]++;
+                    // 摸牌就是出的牌（简化处理）
+                    drawTile = discardTile;
+                } else {
+                    // 如果是玩家且是当前最后一个动作（玩家在当前巡目摸牌）
+                    if (p === playerPos && action === totalActions - 1) {
+                        if (playerDrawnTile !== null) {
+                            // 使用玩家指定的摸牌
+                            drawTile = playerDrawnTile;
+                        } else {
+                            // 玩家没有指定摸牌，随机生成
+                            drawTile = generateRandomTiles(1, tileCount, excludeTiles)[0];
+                            if (drawTile === undefined) {
+                                console.error('无法生成摸牌，可能牌已用完');
+                                break;
+                            }
+                        }
                     } else {
-                        // 玩家没有指定摸牌，随机生成
+                        // 其他情况随机生成摸牌
                         drawTile = generateRandomTiles(1, tileCount, excludeTiles)[0];
                         if (drawTile === undefined) {
                             console.error('无法生成摸牌，可能牌已用完');
                             break;
                         }
                     }
-                } else {
-                    // 其他情况随机生成摸牌
-                    drawTile = generateRandomTiles(1, tileCount, excludeTiles)[0];
-                    if (drawTile === undefined) {
-                        console.error('无法生成摸牌，可能牌已用完');
-                        break;
-                    }
+                    discardTile = drawTile;
                 }
                 
                 draws[p].push(drawTile);
+                discards[p].push(discardTile);
                 
-                // 所有摸牌都要出牌（包括最后一张）
-                // 打出刚摸的牌，并从计数器中减去
-                discards[p].push(drawTile);
-                tileCount[drawTile] = (tileCount[drawTile] || 0) - 1;
-                if (tileCount[drawTile] <= 0) {
-                    delete tileCount[drawTile];
+                // 如果使用了自定义牌河，这些牌已经在开始时计入了，所以不需要再减
+                if (!hasCustomDiscard) {
+                    tileCount[discardTile] = (tileCount[discardTile] || 0) - 1;
+                    if (tileCount[discardTile] <= 0) {
+                        delete tileCount[discardTile];
+                    }
                 }
             }
             
@@ -660,12 +709,56 @@
             return errors;
         }
 
+        // 将牌编码转换为字符串格式
+        function tileToString(tile) {
+            // 赤宝牌
+            if (tile === 51) return '0m'; // 赤5萬
+            if (tile === 52) return '0p'; // 赤5筒
+            if (tile === 53) return '0s'; // 赤5索
+            
+            // 萬 (11-19)
+            if (tile >= 11 && tile <= 19) {
+                return (tile - 10) + 'm';
+            }
+            // 筒 (21-29)
+            if (tile >= 21 && tile <= 29) {
+                return (tile - 20) + 'p';
+            }
+            // 索 (31-39)
+            if (tile >= 31 && tile <= 39) {
+                return (tile - 30) + 's';
+            }
+            // 字牌 (41-47)
+            if (tile >= 41 && tile <= 47) {
+                return (tile - 40) + 'z';
+            }
+            
+            return '';
+        }
+        
+        // 将牌河数组转换为字符串并填充到输入框
+        function fillRiverInputs(discards) {
+            for (let i = 0; i < 4; i++) {
+                const riverStr = discards[i].map(tile => tileToString(tile)).join('');
+                document.getElementById(`river${i}`).value = riverStr;
+            }
+        }
+
         function convertToTenhou() {
             const handStr = document.getElementById('playerHand').value.trim();
             const turn = parseInt(document.getElementById('turn').value);
             const playerPos = parseInt(document.getElementById('playerPosition').value);
             const doraInput = document.getElementById('dora').value.trim();
             const uradoraInput = document.getElementById('uradora').value.trim();
+            
+            // 读取每家的牌河输入
+            const riverInputs = [
+                document.getElementById('river0').value.trim(), // 东家
+                document.getElementById('river1').value.trim(), // 南家
+                document.getElementById('river2').value.trim(), // 西家
+                document.getElementById('river3').value.trim()  // 北家
+            ];
+            
             const messageDiv = document.getElementById('message');
             const outputArea = document.getElementById('output');
 
@@ -721,6 +814,22 @@
                         (uradoraIndicator > 39 && uradoraIndicator < 41)) {
                         messageDiv.innerHTML = '<div class="message error">⚠️ 里宝牌指示牌格式错误</div>';
                         return;
+                    }
+                }
+
+                // 解析每家的牌河（如果有输入）
+                let customRivers = [null, null, null, null]; // 4家的牌河
+                let hasCustomRiver = false;
+                
+                for (let i = 0; i < 4; i++) {
+                    if (riverInputs[i]) {
+                        const tiles = parseTileString(riverInputs[i]);
+                        if (tiles.length === 0) {
+                            messageDiv.innerHTML = `<div class="message error">⚠️ ${['东家', '南家', '西家', '北家'][i]}牌河格式错误</div>`;
+                            return;
+                        }
+                        customRivers[i] = tiles;
+                        hasCustomRiver = true;
                     }
                 }
 
@@ -788,7 +897,7 @@
                         }
                     }
                     
-                    gameData = generateGameData(turn, actualHand, drawnTile, playerPos, finalDoraIndicator, finalUradoraIndicator);
+                    gameData = generateGameData(turn, actualHand, drawnTile, playerPos, finalDoraIndicator, finalUradoraIndicator, customRivers);
                     
                     // 验证牌的数量（包括宝牌）
                     const errors = validateTileCounts(gameData.hands, gameData.draws, finalDoraIndicator, finalUradoraIndicator);
@@ -840,6 +949,10 @@
 
                 const jsonStr = JSON.stringify(tenhouJSON);
                 outputArea.value = jsonStr;
+                
+                // 将生成的牌河填充回输入框
+                fillRiverInputs(gameData.discards);
+                
                 messageDiv.innerHTML = '<div class="message success">✓ JSON生成成功！可以复制或在天凤验证</div>';
 
             } catch (error) {
